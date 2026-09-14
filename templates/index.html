@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Data Karyawan</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="filter-card">
+
+    <form method="GET" action="{{ url_for('index') }}" class="filter-form">
+
+        <div class="search-box">
+
+            <label>Cari Karyawan</label>
+
+            <input
+                type="text"
+                name="search"
+                value="{{ search }}"
+                placeholder="Cari nama, email, atau jabatan..."
+            >
+
+        </div>
+
+
+        <div class="department-box">
+
+            <label>Departemen</label>
+
+            <select name="departemen">
+
+                <option value="">
+                    Semua Departemen
+                </option>
+
+                {% for item in departemen_list %}
+
+                    <option
+                        value="{{ item['departemen'] }}"
+                        {% if departemen == item['departemen'] %}
+                            selected
+                        {% endif %}
+                    >
+                        {{ item['departemen'] }}
+                    </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+        <div class="filter-buttons">
+
+            <button
+                type="submit"
+                class="btn btn-primary">
+                Cari
+            </button>
+
+            <a
+                href="{{ url_for('index') }}"
+                class="btn btn-secondary">
+                Reset
+            </a>
+
+        </div>
+
+    </form>
+
+</div>
+
+
+    <div class="card">
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>No</th>
+                    <th>Nama</th>
+                    <th>Email</th>
+                    <th>Jabatan</th>
+                    <th>Departemen</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% if karyawan %}
+
+                    {% for data in karyawan %}
+
+                    <tr>
+
+                        <td>{{ loop.index }}</td>
+
+                        <td>
+                            <strong>{{ data["nama"] }}</strong>
+                        </td>
+
+                        <td>{{ data["email"] }}</td>
+
+                        <td>{{ data["jabatan"] }}</td>
+
+                        <td>
+                            <span class="badge">
+                                {{ data["departemen"] }}
+                            </span>
+                        </td>
+
+                        <td>
+
+                            <div class="actions">
+
+                                <a
+                                    href="{{ url_for('edit', id=data['id']) }}"
+                                    class="btn btn-edit">
+                                    Edit
+                                </a>
+
+                                <a
+                                    href="{{ url_for('hapus', id=data['id']) }}"
+                                    class="btn btn-delete"
+                                    onclick="return confirm('Yakin ingin menghapus data ini?')">
+                                    Hapus
+                                </a>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                {% else %}
+
+                    <tr>
+
+                        <td colspan="6" class="empty">
+                            Belum ada data karyawan.
+                        </td>
+
+                    </tr>
+
+                {% endif %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+</body>
+</html>
