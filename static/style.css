@@ -424,3 +424,81 @@ td {
     }
 
 }
+/* ================= LOGIN ================= */
+
+.login-container {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+
+.login-card {
+    width: 100%;
+    max-width: 420px;
+    background: white;
+    border-radius: 12px;
+    padding: 35px;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.08);
+}
+
+
+.login-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+
+.login-header h1 {
+    font-size: 24px;
+    margin-bottom: 8px;
+}
+
+
+.login-header p {
+    color: #6b7280;
+}
+
+
+.login-button {
+    width: 100%;
+    margin-top: 5px;
+}
+
+
+.login-info {
+    margin-top: 25px;
+    padding: 15px;
+    text-align: center;
+    background: #f8fafc;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+
+.login-info p {
+    color: #6b7280;
+    margin-bottom: 5px;
+}
+
+
+/* ================= HEADER USER ================= */
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+
+.user-info {
+    font-size: 14px;
+    color: #6b7280;
+}
+
+
+.user-info strong {
+    color: #1f2937;
+}

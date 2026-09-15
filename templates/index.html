@@ -2,13 +2,21 @@
 <html lang="id">
 
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>Employee Management System</title>
 
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='style.css') }}">
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+
 </head>
 
 <body>
@@ -20,19 +28,49 @@
     <div class="header">
 
         <div>
-            <h1>Employee Management System</h1>
-            <p>Kelola data karyawan perusahaan</p>
+
+            <h1>
+                Employee Management System
+            </h1>
+
+            <p>
+                Kelola data karyawan perusahaan
+            </p>
+
         </div>
 
-        <a href="{{ url_for('tambah') }}"
-           class="btn btn-primary">
-            + Tambah Karyawan
-        </a>
+
+        <div class="header-right">
+
+            <div class="user-info">
+
+                Login sebagai:
+                <strong>
+                    {{ username }}
+                </strong>
+
+            </div>
+
+            <a
+                href="{{ url_for('logout') }}"
+                class="btn btn-secondary"
+            >
+                Logout
+            </a>
+
+            <a
+                href="{{ url_for('tambah') }}"
+                class="btn btn-primary"
+            >
+                + Tambah Karyawan
+            </a>
+
+        </div>
 
     </div>
 
 
-    <!-- ================= FLASH MESSAGE ================= -->
+    <!-- ================= FLASH ================= -->
 
     {% with messages = get_flashed_messages(with_categories=true) %}
 
@@ -59,8 +97,6 @@
 
     <div class="dashboard">
 
-        <!-- Total Karyawan -->
-
         <div class="dashboard-card">
 
             <div class="dashboard-title">
@@ -73,8 +109,6 @@
 
         </div>
 
-
-        <!-- Departemen -->
 
         {% for item in department_stats %}
 
@@ -99,13 +133,17 @@
 
     <div class="filter-card">
 
-        <form method="GET"
-              action="{{ url_for('index') }}"
-              class="filter-form">
+        <form
+            method="GET"
+            action="{{ url_for('index') }}"
+            class="filter-form"
+        >
 
             <div class="search-box">
 
-                <label>Cari Karyawan</label>
+                <label>
+                    Cari Karyawan
+                </label>
 
                 <input
                     type="text"
@@ -119,7 +157,9 @@
 
             <div class="department-box">
 
-                <label>Departemen</label>
+                <label>
+                    Departemen
+                </label>
 
                 <select name="departemen">
 
@@ -178,7 +218,9 @@
 
             <div>
 
-                <h2>Data Karyawan</h2>
+                <h2>
+                    Data Karyawan
+                </h2>
 
                 <p>
                     Menampilkan
@@ -301,8 +343,6 @@
 
             <div class="pagination">
 
-                <!-- Previous -->
-
                 {% if page > 1 %}
 
                     <a
@@ -319,8 +359,6 @@
 
                 {% endif %}
 
-
-                <!-- Number -->
 
                 <div class="page-numbers">
 
@@ -345,8 +383,6 @@
 
                 </div>
 
-
-                <!-- Next -->
 
                 {% if page < total_pages %}
 

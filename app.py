@@ -1,11 +1,17 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 import mysql.connector
 import math
+from functools import wraps
 
 app = Flask(__name__)
 
-# Secret key digunakan untuk flash message
+# Secret key untuk session dan flash message
 app.secret_key = "employee-app-secret-key"
+
+
+# =========================================================
+# DATABASE CONFIGURATION
+# =========================================================
 
 DB_CONFIG = {
     "host": "localhost",
@@ -22,15 +28,128 @@ def get_db():
         password=DB_CONFIG["password"],
         database=DB_CONFIG["database"]
     )
+
     return conn
 
 
 # =========================================================
-# HALAMAN UTAMA + DASHBOARD + SEARCH + FILTER + PAGINATION
+# LOGIN REQUIRED DECORATOR
+# =========================================================
+
+def login_required(f):
+
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+
+        if "user_id" not in session:
+
+            flash(
+                "Silakan login terlebih dahulu.",
+                "error"
+            )
+
+            return redirect(url_for("login"))
+
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
+# =========================================================
+# LOGIN
+# =========================================================
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+
+    # Jika sudah login, langsung ke dashboard
+    if "user_id" in session:
+        return redirect(url_for("index"))
+
+    if request.method == "POST":
+
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "").strip()
+
+        # Validasi input
+        if not username or not password:
+
+            flash(
+                "Username dan password wajib diisi.",
+                "error"
+            )
+
+            return render_template("login.html")
+
+        conn = get_db()
+        cursor = conn.cursor(dictionary=True)
+
+        # Cari user
+        cursor.execute(
+            """
+            SELECT *
+            FROM users
+            WHERE username = %s
+            AND password = %s
+            """,
+            (username, password)
+        )
+
+        user = cursor.fetchone()
+
+        cursor.close()
+        conn.close()
+
+        if user:
+
+            # Simpan informasi user ke session
+            session["user_id"] = user["id"]
+            session["username"] = user["username"]
+
+            flash(
+                "Login berhasil. Selamat datang!",
+                "success"
+            )
+
+            return redirect(url_for("index"))
+
+        else:
+
+            flash(
+                "Username atau password salah.",
+                "error"
+            )
+
+            return render_template("login.html")
+
+    return render_template("login.html")
+
+
+# =========================================================
+# LOGOUT
+# =========================================================
+
+@app.route("/logout")
+def logout():
+
+    session.clear()
+
+    flash(
+        "Anda telah berhasil logout.",
+        "success"
+    )
+
+    return redirect(url_for("login"))
+
+
+# =========================================================
+# DASHBOARD + SEARCH + FILTER + PAGINATION
 # =========================================================
 
 @app.route("/")
+@login_required
 def index():
+
     search = request.args.get("search", "").strip()
     departemen = request.args.get("departemen", "").strip()
 
@@ -41,16 +160,16 @@ def index():
         page = 1
 
     per_page = 5
+
     offset = (page - 1) * per_page
 
     conn = get_db()
     cursor = conn.cursor(dictionary=True)
 
     # =====================================================
-    # DASHBOARD
+    # TOTAL KARYAWAN
     # =====================================================
 
-    # Total seluruh karyawan
     cursor.execute("""
         SELECT COUNT(*) AS total
         FROM karyawan
@@ -58,7 +177,10 @@ def index():
 
     total_karyawan = cursor.fetchone()["total"]
 
-    # Total karyawan per departemen
+    # =====================================================
+    # STATISTIK DEPARTEMEN
+    # =====================================================
+
     cursor.execute("""
         SELECT departemen, COUNT(*) AS total
         FROM karyawan
@@ -80,6 +202,7 @@ def index():
     params = []
 
     if search:
+
         base_query += """
             AND (
                 nama LIKE %s
@@ -97,6 +220,7 @@ def index():
         ])
 
     if departemen:
+
         base_query += """
             AND departemen = %s
         """
@@ -104,7 +228,7 @@ def index():
         params.append(departemen)
 
     # =====================================================
-    # TOTAL DATA UNTUK PAGINATION
+    # TOTAL DATA
     # =====================================================
 
     cursor.execute(
@@ -114,11 +238,15 @@ def index():
 
     total_data = cursor.fetchone()["total"]
 
-    total_pages = math.ceil(total_data / per_page)
+    total_pages = math.ceil(
+        total_data / per_page
+    )
 
-    # Jika page lebih besar dari halaman terakhir
+    # Jika halaman melebihi halaman terakhir
     if total_pages > 0 and page > total_pages:
+
         page = total_pages
+
         offset = (page - 1) * per_page
 
     # =====================================================
@@ -132,9 +260,15 @@ def index():
         LIMIT %s OFFSET %s
     """
 
-    data_params = params + [per_page, offset]
+    data_params = params + [
+        per_page,
+        offset
+    ]
 
-    cursor.execute(data_query, data_params)
+    cursor.execute(
+        data_query,
+        data_params
+    )
 
     karyawan = cursor.fetchall()
 
@@ -155,20 +289,22 @@ def index():
 
     return render_template(
         "index.html",
+
         karyawan=karyawan,
         departemen_list=departemen_list,
+
         search=search,
         departemen=departemen,
 
-        # Dashboard
         total_karyawan=total_karyawan,
         department_stats=department_stats,
 
-        # Pagination
         page=page,
         per_page=per_page,
         total_data=total_data,
-        total_pages=total_pages
+        total_pages=total_pages,
+
+        username=session.get("username")
     )
 
 
@@ -177,20 +313,37 @@ def index():
 # =========================================================
 
 @app.route("/tambah", methods=["GET", "POST"])
+@login_required
 def tambah():
 
     if request.method == "POST":
 
-        nama = request.form.get("nama", "").strip()
-        email = request.form.get("email", "").strip()
-        jabatan = request.form.get("jabatan", "").strip()
-        departemen = request.form.get("departemen", "").strip()
+        nama = request.form.get(
+            "nama",
+            ""
+        ).strip()
 
-        # =========================
+        email = request.form.get(
+            "email",
+            ""
+        ).strip()
+
+        jabatan = request.form.get(
+            "jabatan",
+            ""
+        ).strip()
+
+        departemen = request.form.get(
+            "departemen",
+            ""
+        ).strip()
+
+        # =================================================
         # VALIDASI
-        # =========================
+        # =================================================
 
         if not nama or not email or not jabatan or not departemen:
+
             flash(
                 "Semua field wajib diisi.",
                 "error"
@@ -198,6 +351,7 @@ def tambah():
 
             return render_template(
                 "tambah.html",
+
                 nama=nama,
                 email=email,
                 jabatan=jabatan,
@@ -206,6 +360,7 @@ def tambah():
 
         # Validasi email sederhana
         if "@" not in email or "." not in email:
+
             flash(
                 "Format email tidak valid.",
                 "error"
@@ -213,6 +368,7 @@ def tambah():
 
             return render_template(
                 "tambah.html",
+
                 nama=nama,
                 email=email,
                 jabatan=jabatan,
@@ -222,16 +378,23 @@ def tambah():
         conn = get_db()
         cursor = conn.cursor()
 
-        # Cek email sudah digunakan atau belum
-        cursor.execute("""
+        # =================================================
+        # CEK EMAIL
+        # =================================================
+
+        cursor.execute(
+            """
             SELECT id
             FROM karyawan
             WHERE email = %s
-        """, (email,))
+            """,
+            (email,)
+        )
 
         existing_email = cursor.fetchone()
 
         if existing_email:
+
             cursor.close()
             conn.close()
 
@@ -242,26 +405,35 @@ def tambah():
 
             return render_template(
                 "tambah.html",
+
                 nama=nama,
                 email=email,
                 jabatan=jabatan,
                 departemen=departemen
             )
 
-        # =========================
-        # INSERT DATA
-        # =========================
+        # =================================================
+        # INSERT
+        # =================================================
 
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO karyawan
-            (nama, email, jabatan, departemen)
+            (
+                nama,
+                email,
+                jabatan,
+                departemen
+            )
             VALUES (%s, %s, %s, %s)
-        """, (
-            nama,
-            email,
-            jabatan,
-            departemen
-        ))
+            """,
+            (
+                nama,
+                email,
+                jabatan,
+                departemen
+            )
+        )
 
         conn.commit()
 
@@ -273,9 +445,13 @@ def tambah():
             "success"
         )
 
-        return redirect(url_for("index"))
+        return redirect(
+            url_for("index")
+        )
 
-    return render_template("tambah.html")
+    return render_template(
+        "tambah.html"
+    )
 
 
 # =========================================================
@@ -283,17 +459,23 @@ def tambah():
 # =========================================================
 
 @app.route("/edit/<int:id>", methods=["GET", "POST"])
+@login_required
 def edit(id):
 
     conn = get_db()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(
+        dictionary=True
+    )
 
-    # Ambil data berdasarkan ID
-    cursor.execute("""
+    # Ambil data
+    cursor.execute(
+        """
         SELECT *
         FROM karyawan
         WHERE id = %s
-    """, (id,))
+        """,
+        (id,)
+    )
 
     data = cursor.fetchone()
 
@@ -307,20 +489,37 @@ def edit(id):
             "error"
         )
 
-        return redirect(url_for("index"))
+        return redirect(
+            url_for("index")
+        )
 
     # =====================================================
-    # UPDATE DATA
+    # UPDATE
     # =====================================================
 
     if request.method == "POST":
 
-        nama = request.form.get("nama", "").strip()
-        email = request.form.get("email", "").strip()
-        jabatan = request.form.get("jabatan", "").strip()
-        departemen = request.form.get("departemen", "").strip()
+        nama = request.form.get(
+            "nama",
+            ""
+        ).strip()
 
-        # Validasi field kosong
+        email = request.form.get(
+            "email",
+            ""
+        ).strip()
+
+        jabatan = request.form.get(
+            "jabatan",
+            ""
+        ).strip()
+
+        departemen = request.form.get(
+            "departemen",
+            ""
+        ).strip()
+
+        # Validasi field
         if not nama or not email or not jabatan or not departemen:
 
             cursor.close()
@@ -333,6 +532,7 @@ def edit(id):
 
             return render_template(
                 "edit.html",
+
                 data={
                     "id": id,
                     "nama": nama,
@@ -355,6 +555,7 @@ def edit(id):
 
             return render_template(
                 "edit.html",
+
                 data={
                     "id": id,
                     "nama": nama,
@@ -364,13 +565,16 @@ def edit(id):
                 }
             )
 
-        # Cek apakah email digunakan karyawan lain
-        cursor.execute("""
+        # Cek email
+        cursor.execute(
+            """
             SELECT id
             FROM karyawan
             WHERE email = %s
             AND id != %s
-        """, (email, id))
+            """,
+            (email, id)
+        )
 
         existing_email = cursor.fetchone()
 
@@ -386,6 +590,7 @@ def edit(id):
 
             return render_template(
                 "edit.html",
+
                 data={
                     "id": id,
                     "nama": nama,
@@ -395,8 +600,9 @@ def edit(id):
                 }
             )
 
-        # Update database
-        cursor.execute("""
+        # Update
+        cursor.execute(
+            """
             UPDATE karyawan
             SET
                 nama = %s,
@@ -404,13 +610,15 @@ def edit(id):
                 jabatan = %s,
                 departemen = %s
             WHERE id = %s
-        """, (
-            nama,
-            email,
-            jabatan,
-            departemen,
-            id
-        ))
+            """,
+            (
+                nama,
+                email,
+                jabatan,
+                departemen,
+                id
+            )
+        )
 
         conn.commit()
 
@@ -422,7 +630,9 @@ def edit(id):
             "success"
         )
 
-        return redirect(url_for("index"))
+        return redirect(
+            url_for("index")
+        )
 
     cursor.close()
     conn.close()
@@ -434,21 +644,25 @@ def edit(id):
 
 
 # =========================================================
-# HAPUS KARYAWAN
+# HAPUS
 # =========================================================
 
 @app.route("/hapus/<int:id>")
+@login_required
 def hapus(id):
 
     conn = get_db()
     cursor = conn.cursor()
 
-    # Cek apakah data ada
-    cursor.execute("""
+    # Cek data
+    cursor.execute(
+        """
         SELECT id
         FROM karyawan
         WHERE id = %s
-    """, (id,))
+        """,
+        (id,)
+    )
 
     data = cursor.fetchone()
 
@@ -462,13 +676,18 @@ def hapus(id):
             "error"
         )
 
-        return redirect(url_for("index"))
+        return redirect(
+            url_for("index")
+        )
 
-    # Hapus data
-    cursor.execute("""
+    # Delete
+    cursor.execute(
+        """
         DELETE FROM karyawan
         WHERE id = %s
-    """, (id,))
+        """,
+        (id,)
+    )
 
     conn.commit()
 
@@ -480,14 +699,17 @@ def hapus(id):
         "success"
     )
 
-    return redirect(url_for("index"))
+    return redirect(
+        url_for("index")
+    )
 
 
 # =========================================================
-# RUN APPLICATION
+# RUN
 # =========================================================
 
 if __name__ == "__main__":
+
     app.run(
         debug=True,
         host="127.0.0.1",
