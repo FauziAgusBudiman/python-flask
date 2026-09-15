@@ -5,96 +5,214 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Data Karyawan</title>
+    <title>Employee Management System</title>
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
 </head>
 
 <body>
 
 <div class="container">
 
-    <div class="filter-card">
+    <!-- ================= HEADER ================= -->
 
-    <form method="GET" action="{{ url_for('index') }}" class="filter-form">
+    <div class="header">
 
-        <div class="search-box">
-
-            <label>Cari Karyawan</label>
-
-            <input
-                type="text"
-                name="search"
-                value="{{ search }}"
-                placeholder="Cari nama, email, atau jabatan..."
-            >
-
+        <div>
+            <h1>Employee Management System</h1>
+            <p>Kelola data karyawan perusahaan</p>
         </div>
 
+        <a href="{{ url_for('tambah') }}"
+           class="btn btn-primary">
+            + Tambah Karyawan
+        </a>
 
-        <div class="department-box">
+    </div>
 
-            <label>Departemen</label>
 
-            <select name="departemen">
+    <!-- ================= FLASH MESSAGE ================= -->
 
-                <option value="">
-                    Semua Departemen
-                </option>
+    {% with messages = get_flashed_messages(with_categories=true) %}
 
-                {% for item in departemen_list %}
+        {% if messages %}
 
-                    <option
-                        value="{{ item['departemen'] }}"
-                        {% if departemen == item['departemen'] %}
-                            selected
-                        {% endif %}
-                    >
-                        {{ item['departemen'] }}
-                    </option>
+            <div class="flash-container">
+
+                {% for category, message in messages %}
+
+                    <div class="flash {{ category }}">
+                        {{ message }}
+                    </div>
 
                 {% endfor %}
 
-            </select>
+            </div>
+
+        {% endif %}
+
+    {% endwith %}
+
+
+    <!-- ================= DASHBOARD ================= -->
+
+    <div class="dashboard">
+
+        <!-- Total Karyawan -->
+
+        <div class="dashboard-card">
+
+            <div class="dashboard-title">
+                Total Karyawan
+            </div>
+
+            <div class="dashboard-number">
+                {{ total_karyawan }}
+            </div>
 
         </div>
 
 
-        <div class="filter-buttons">
+        <!-- Departemen -->
 
-            <button
-                type="submit"
-                class="btn btn-primary">
-                Cari
-            </button>
+        {% for item in department_stats %}
 
-            <a
-                href="{{ url_for('index') }}"
-                class="btn btn-secondary">
-                Reset
-            </a>
+            <div class="dashboard-card">
 
-        </div>
+                <div class="dashboard-title">
+                    {{ item["departemen"] }}
+                </div>
 
-    </form>
+                <div class="dashboard-number">
+                    {{ item["total"] }}
+                </div>
 
-</div>
+            </div>
 
+        {% endfor %}
+
+    </div>
+
+
+    <!-- ================= FILTER ================= -->
+
+    <div class="filter-card">
+
+        <form method="GET"
+              action="{{ url_for('index') }}"
+              class="filter-form">
+
+            <div class="search-box">
+
+                <label>Cari Karyawan</label>
+
+                <input
+                    type="text"
+                    name="search"
+                    value="{{ search }}"
+                    placeholder="Cari nama, email, atau jabatan..."
+                >
+
+            </div>
+
+
+            <div class="department-box">
+
+                <label>Departemen</label>
+
+                <select name="departemen">
+
+                    <option value="">
+                        Semua Departemen
+                    </option>
+
+                    {% for item in departemen_list %}
+
+                        <option
+                            value="{{ item['departemen'] }}"
+                            {% if departemen == item['departemen'] %}
+                                selected
+                            {% endif %}
+                        >
+
+                            {{ item['departemen'] }}
+
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <div class="filter-buttons">
+
+                <button
+                    type="submit"
+                    class="btn btn-primary"
+                >
+                    Cari
+                </button>
+
+                <a
+                    href="{{ url_for('index') }}"
+                    class="btn btn-secondary"
+                >
+                    Reset
+                </a>
+
+            </div>
+
+        </form>
+
+    </div>
+
+
+    <!-- ================= TABLE ================= -->
 
     <div class="card">
+
+        <div class="table-header">
+
+            <div>
+
+                <h2>Data Karyawan</h2>
+
+                <p>
+                    Menampilkan
+                    {{ total_data }}
+                    data
+                </p>
+
+            </div>
+
+        </div>
+
 
         <table>
 
             <thead>
+
                 <tr>
+
                     <th>No</th>
+
                     <th>Nama</th>
+
                     <th>Email</th>
+
                     <th>Jabatan</th>
+
                     <th>Departemen</th>
+
                     <th>Aksi</th>
+
                 </tr>
+
             </thead>
+
 
             <tbody>
 
@@ -102,46 +220,58 @@
 
                     {% for data in karyawan %}
 
-                    <tr>
+                        <tr>
 
-                        <td>{{ loop.index }}</td>
+                            <td>
+                                {{ (page - 1) * per_page + loop.index }}
+                            </td>
 
-                        <td>
-                            <strong>{{ data["nama"] }}</strong>
-                        </td>
+                            <td>
+                                <strong>
+                                    {{ data["nama"] }}
+                                </strong>
+                            </td>
 
-                        <td>{{ data["email"] }}</td>
+                            <td>
+                                {{ data["email"] }}
+                            </td>
 
-                        <td>{{ data["jabatan"] }}</td>
+                            <td>
+                                {{ data["jabatan"] }}
+                            </td>
 
-                        <td>
-                            <span class="badge">
-                                {{ data["departemen"] }}
-                            </span>
-                        </td>
+                            <td>
 
-                        <td>
+                                <span class="badge">
+                                    {{ data["departemen"] }}
+                                </span>
 
-                            <div class="actions">
+                            </td>
 
-                                <a
-                                    href="{{ url_for('edit', id=data['id']) }}"
-                                    class="btn btn-edit">
-                                    Edit
-                                </a>
+                            <td>
 
-                                <a
-                                    href="{{ url_for('hapus', id=data['id']) }}"
-                                    class="btn btn-delete"
-                                    onclick="return confirm('Yakin ingin menghapus data ini?')">
-                                    Hapus
-                                </a>
+                                <div class="actions">
 
-                            </div>
+                                    <a
+                                        href="{{ url_for('edit', id=data['id']) }}"
+                                        class="btn btn-edit"
+                                    >
+                                        Edit
+                                    </a>
 
-                        </td>
+                                    <a
+                                        href="{{ url_for('hapus', id=data['id']) }}"
+                                        class="btn btn-delete"
+                                        onclick="return confirm('Yakin ingin menghapus data ini?')"
+                                    >
+                                        Hapus
+                                    </a>
 
-                    </tr>
+                                </div>
+
+                            </td>
+
+                        </tr>
 
                     {% endfor %}
 
@@ -149,8 +279,11 @@
 
                     <tr>
 
-                        <td colspan="6" class="empty">
-                            Belum ada data karyawan.
+                        <td
+                            colspan="6"
+                            class="empty"
+                        >
+                            Data tidak ditemukan.
                         </td>
 
                     </tr>
@@ -161,9 +294,84 @@
 
         </table>
 
+
+        <!-- ================= PAGINATION ================= -->
+
+        {% if total_pages > 1 %}
+
+            <div class="pagination">
+
+                <!-- Previous -->
+
+                {% if page > 1 %}
+
+                    <a
+                        href="{{ url_for(
+                            'index',
+                            page=page-1,
+                            search=search,
+                            departemen=departemen
+                        ) }}"
+                        class="page-btn"
+                    >
+                        ← Sebelumnya
+                    </a>
+
+                {% endif %}
+
+
+                <!-- Number -->
+
+                <div class="page-numbers">
+
+                    {% for page_number in range(1, total_pages + 1) %}
+
+                        <a
+                            href="{{ url_for(
+                                'index',
+                                page=page_number,
+                                search=search,
+                                departemen=departemen
+                            ) }}"
+                            class="page-btn
+                            {% if page_number == page %}
+                                active
+                            {% endif %}"
+                        >
+                            {{ page_number }}
+                        </a>
+
+                    {% endfor %}
+
+                </div>
+
+
+                <!-- Next -->
+
+                {% if page < total_pages %}
+
+                    <a
+                        href="{{ url_for(
+                            'index',
+                            page=page+1,
+                            search=search,
+                            departemen=departemen
+                        ) }}"
+                        class="page-btn"
+                    >
+                        Berikutnya →
+                    </a>
+
+                {% endif %}
+
+            </div>
+
+        {% endif %}
+
     </div>
 
 </div>
 
 </body>
+
 </html>

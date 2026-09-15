@@ -12,7 +12,6 @@
 
     <title>Tambah Karyawan</title>
 
-
     <link
         rel="stylesheet"
         href="{{ url_for('static', filename='style.css') }}"
@@ -20,40 +19,52 @@
 
 </head>
 
-
 <body>
-
 
 <div class="container form-container">
 
-
     <div class="form-card">
 
-
-        <h1>
-            Tambah Karyawan
-        </h1>
-
+        <h1>Tambah Karyawan</h1>
 
         <p class="subtitle">
             Masukkan informasi karyawan
         </p>
 
 
+        <!-- FLASH MESSAGE -->
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+
+            {% if messages %}
+
+                <div class="flash-container">
+
+                    {% for category, message in messages %}
+
+                        <div class="flash {{ category }}">
+                            {{ message }}
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            {% endif %}
+
+        {% endwith %}
+
 
         <form method="POST">
 
-
             <div class="form-group">
 
-                <label>
-                    Nama Lengkap
-                </label>
-
+                <label>Nama Lengkap</label>
 
                 <input
                     type="text"
                     name="nama"
+                    value="{{ nama or '' }}"
                     placeholder="Contoh: Fauzi Agus Budiman"
                     required
                 >
@@ -61,17 +72,14 @@
             </div>
 
 
-
             <div class="form-group">
 
-                <label>
-                    Email
-                </label>
-
+                <label>Email</label>
 
                 <input
                     type="email"
                     name="email"
+                    value="{{ email or '' }}"
                     placeholder="contoh@email.com"
                     required
                 >
@@ -79,17 +87,14 @@
             </div>
 
 
-
             <div class="form-group">
 
-                <label>
-                    Jabatan
-                </label>
-
+                <label>Jabatan</label>
 
                 <input
                     type="text"
                     name="jabatan"
+                    value="{{ jabatan or '' }}"
                     placeholder="Contoh: Staff IT"
                     required
                 >
@@ -97,17 +102,14 @@
             </div>
 
 
-
             <div class="form-group">
 
-                <label>
-                    Departemen
-                </label>
-
+                <label>Departemen</label>
 
                 <input
                     type="text"
                     name="departemen"
+                    value="{{ departemen or '' }}"
                     placeholder="Contoh: Information Technology"
                     required
                 >
@@ -115,41 +117,29 @@
             </div>
 
 
-
             <div class="form-actions">
-
 
                 <a
                     href="{{ url_for('index') }}"
                     class="btn btn-secondary"
                 >
-
                     Kembali
-
                 </a>
-
 
                 <button
                     type="submit"
                     class="btn btn-primary"
                 >
-
                     Simpan Data
-
                 </button>
-
 
             </div>
 
-
         </form>
-
 
     </div>
 
-
 </div>
-
 
 </body>
 

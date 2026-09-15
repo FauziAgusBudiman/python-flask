@@ -1,12 +1,11 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, flash
 import mysql.connector
+import math
 
 app = Flask(__name__)
 
-
-# ==========================================
-# KONFIGURASI DATABASE
-# ==========================================
+# Secret key digunakan untuk flash message
+app.secret_key = "employee-app-secret-key"
 
 DB_CONFIG = {
     "host": "localhost",
@@ -16,50 +15,72 @@ DB_CONFIG = {
 }
 
 
-# ==========================================
-# KONEKSI DATABASE
-# ==========================================
-
 def get_db():
-
     conn = mysql.connector.connect(
         host=DB_CONFIG["host"],
         user=DB_CONFIG["user"],
         password=DB_CONFIG["password"],
         database=DB_CONFIG["database"]
     )
-
     return conn
 
 
-# ==========================================
-# HALAMAN UTAMA
-# SEARCH + FILTER
-# ==========================================
+# =========================================================
+# HALAMAN UTAMA + DASHBOARD + SEARCH + FILTER + PAGINATION
+# =========================================================
 
 @app.route("/")
 def index():
+    search = request.args.get("search", "").strip()
+    departemen = request.args.get("departemen", "").strip()
 
-    search = request.args.get("search", "")
-    departemen = request.args.get("departemen", "")
+    # Pagination
+    page = request.args.get("page", 1, type=int)
+
+    if page < 1:
+        page = 1
+
+    per_page = 5
+    offset = (page - 1) * per_page
 
     conn = get_db()
-
     cursor = conn.cursor(dictionary=True)
 
-    # Query dasar
-    query = """
-        SELECT *
+    # =====================================================
+    # DASHBOARD
+    # =====================================================
+
+    # Total seluruh karyawan
+    cursor.execute("""
+        SELECT COUNT(*) AS total
+        FROM karyawan
+    """)
+
+    total_karyawan = cursor.fetchone()["total"]
+
+    # Total karyawan per departemen
+    cursor.execute("""
+        SELECT departemen, COUNT(*) AS total
+        FROM karyawan
+        GROUP BY departemen
+        ORDER BY departemen ASC
+    """)
+
+    department_stats = cursor.fetchall()
+
+    # =====================================================
+    # SEARCH + FILTER
+    # =====================================================
+
+    base_query = """
         FROM karyawan
         WHERE 1=1
     """
 
     params = []
 
-    # Search
     if search:
-
-        query += """
+        base_query += """
             AND (
                 nama LIKE %s
                 OR email LIKE %s
@@ -75,28 +96,51 @@ def index():
             search_value
         ])
 
-    # Filter departemen
     if departemen:
-
-        query += """
+        base_query += """
             AND departemen = %s
         """
 
         params.append(departemen)
 
-    # Urutkan data
-    query += """
+    # =====================================================
+    # TOTAL DATA UNTUK PAGINATION
+    # =====================================================
+
+    cursor.execute(
+        "SELECT COUNT(*) AS total " + base_query,
+        params
+    )
+
+    total_data = cursor.fetchone()["total"]
+
+    total_pages = math.ceil(total_data / per_page)
+
+    # Jika page lebih besar dari halaman terakhir
+    if total_pages > 0 and page > total_pages:
+        page = total_pages
+        offset = (page - 1) * per_page
+
+    # =====================================================
+    # AMBIL DATA KARYAWAN
+    # =====================================================
+
+    data_query = """
+        SELECT *
+    """ + base_query + """
         ORDER BY id DESC
+        LIMIT %s OFFSET %s
     """
 
-    cursor.execute(query, params)
+    data_params = params + [per_page, offset]
+
+    cursor.execute(data_query, data_params)
 
     karyawan = cursor.fetchall()
 
-
-    # ==========================================
-    # AMBIL DAFTAR DEPARTEMEN
-    # ==========================================
+    # =====================================================
+    # DAFTAR DEPARTEMEN
+    # =====================================================
 
     cursor.execute("""
         SELECT DISTINCT departemen
@@ -106,149 +150,282 @@ def index():
 
     departemen_list = cursor.fetchall()
 
-
     cursor.close()
     conn.close()
-
 
     return render_template(
         "index.html",
         karyawan=karyawan,
         departemen_list=departemen_list,
         search=search,
-        departemen=departemen
+        departemen=departemen,
+
+        # Dashboard
+        total_karyawan=total_karyawan,
+        department_stats=department_stats,
+
+        # Pagination
+        page=page,
+        per_page=per_page,
+        total_data=total_data,
+        total_pages=total_pages
     )
 
 
-# ==========================================
+# =========================================================
 # TAMBAH KARYAWAN
-# ==========================================
+# =========================================================
 
 @app.route("/tambah", methods=["GET", "POST"])
 def tambah():
 
     if request.method == "POST":
 
-        nama = request.form["nama"]
-        email = request.form["email"]
-        jabatan = request.form["jabatan"]
-        departemen = request.form["departemen"]
+        nama = request.form.get("nama", "").strip()
+        email = request.form.get("email", "").strip()
+        jabatan = request.form.get("jabatan", "").strip()
+        departemen = request.form.get("departemen", "").strip()
 
+        # =========================
+        # VALIDASI
+        # =========================
+
+        if not nama or not email or not jabatan or not departemen:
+            flash(
+                "Semua field wajib diisi.",
+                "error"
+            )
+
+            return render_template(
+                "tambah.html",
+                nama=nama,
+                email=email,
+                jabatan=jabatan,
+                departemen=departemen
+            )
+
+        # Validasi email sederhana
+        if "@" not in email or "." not in email:
+            flash(
+                "Format email tidak valid.",
+                "error"
+            )
+
+            return render_template(
+                "tambah.html",
+                nama=nama,
+                email=email,
+                jabatan=jabatan,
+                departemen=departemen
+            )
 
         conn = get_db()
-
         cursor = conn.cursor()
 
+        # Cek email sudah digunakan atau belum
+        cursor.execute("""
+            SELECT id
+            FROM karyawan
+            WHERE email = %s
+        """, (email,))
 
-        query = """
+        existing_email = cursor.fetchone()
+
+        if existing_email:
+            cursor.close()
+            conn.close()
+
+            flash(
+                "Email tersebut sudah digunakan.",
+                "error"
+            )
+
+            return render_template(
+                "tambah.html",
+                nama=nama,
+                email=email,
+                jabatan=jabatan,
+                departemen=departemen
+            )
+
+        # =========================
+        # INSERT DATA
+        # =========================
+
+        cursor.execute("""
             INSERT INTO karyawan
             (nama, email, jabatan, departemen)
             VALUES (%s, %s, %s, %s)
-        """
-
-
-        cursor.execute(
-            query,
-            (
-                nama,
-                email,
-                jabatan,
-                departemen
-            )
-        )
-
+        """, (
+            nama,
+            email,
+            jabatan,
+            departemen
+        ))
 
         conn.commit()
 
         cursor.close()
         conn.close()
 
+        flash(
+            "Data karyawan berhasil ditambahkan.",
+            "success"
+        )
 
         return redirect(url_for("index"))
-
 
     return render_template("tambah.html")
 
 
-# ==========================================
+# =========================================================
 # EDIT KARYAWAN
-# ==========================================
+# =========================================================
 
 @app.route("/edit/<int:id>", methods=["GET", "POST"])
 def edit(id):
 
     conn = get_db()
-
     cursor = conn.cursor(dictionary=True)
 
-
     # Ambil data berdasarkan ID
-    cursor.execute(
-        """
+    cursor.execute("""
         SELECT *
         FROM karyawan
         WHERE id = %s
-        """,
-        (id,)
-    )
-
+    """, (id,))
 
     data = cursor.fetchone()
 
-
-    # Jika data tidak ditemukan
     if data is None:
 
         cursor.close()
         conn.close()
 
-        return "Data karyawan tidak ditemukan", 404
+        flash(
+            "Data karyawan tidak ditemukan.",
+            "error"
+        )
 
+        return redirect(url_for("index"))
 
-    # Jika form disubmit
+    # =====================================================
+    # UPDATE DATA
+    # =====================================================
+
     if request.method == "POST":
 
-        nama = request.form["nama"]
-        email = request.form["email"]
-        jabatan = request.form["jabatan"]
-        departemen = request.form["departemen"]
+        nama = request.form.get("nama", "").strip()
+        email = request.form.get("email", "").strip()
+        jabatan = request.form.get("jabatan", "").strip()
+        departemen = request.form.get("departemen", "").strip()
 
+        # Validasi field kosong
+        if not nama or not email or not jabatan or not departemen:
 
-        cursor.execute(
-            """
+            cursor.close()
+            conn.close()
+
+            flash(
+                "Semua field wajib diisi.",
+                "error"
+            )
+
+            return render_template(
+                "edit.html",
+                data={
+                    "id": id,
+                    "nama": nama,
+                    "email": email,
+                    "jabatan": jabatan,
+                    "departemen": departemen
+                }
+            )
+
+        # Validasi email
+        if "@" not in email or "." not in email:
+
+            cursor.close()
+            conn.close()
+
+            flash(
+                "Format email tidak valid.",
+                "error"
+            )
+
+            return render_template(
+                "edit.html",
+                data={
+                    "id": id,
+                    "nama": nama,
+                    "email": email,
+                    "jabatan": jabatan,
+                    "departemen": departemen
+                }
+            )
+
+        # Cek apakah email digunakan karyawan lain
+        cursor.execute("""
+            SELECT id
+            FROM karyawan
+            WHERE email = %s
+            AND id != %s
+        """, (email, id))
+
+        existing_email = cursor.fetchone()
+
+        if existing_email:
+
+            cursor.close()
+            conn.close()
+
+            flash(
+                "Email tersebut sudah digunakan oleh karyawan lain.",
+                "error"
+            )
+
+            return render_template(
+                "edit.html",
+                data={
+                    "id": id,
+                    "nama": nama,
+                    "email": email,
+                    "jabatan": jabatan,
+                    "departemen": departemen
+                }
+            )
+
+        # Update database
+        cursor.execute("""
             UPDATE karyawan
-
             SET
                 nama = %s,
                 email = %s,
                 jabatan = %s,
                 departemen = %s
-
             WHERE id = %s
-            """,
-
-            (
-                nama,
-                email,
-                jabatan,
-                departemen,
-                id
-            )
-        )
-
+        """, (
+            nama,
+            email,
+            jabatan,
+            departemen,
+            id
+        ))
 
         conn.commit()
 
         cursor.close()
         conn.close()
 
+        flash(
+            "Data karyawan berhasil diperbarui.",
+            "success"
+        )
 
         return redirect(url_for("index"))
 
-
     cursor.close()
     conn.close()
-
 
     return render_template(
         "edit.html",
@@ -256,42 +433,61 @@ def edit(id):
     )
 
 
-# ==========================================
+# =========================================================
 # HAPUS KARYAWAN
-# ==========================================
+# =========================================================
 
 @app.route("/hapus/<int:id>")
 def hapus(id):
 
     conn = get_db()
-
     cursor = conn.cursor()
 
+    # Cek apakah data ada
+    cursor.execute("""
+        SELECT id
+        FROM karyawan
+        WHERE id = %s
+    """, (id,))
 
-    cursor.execute(
-        """
+    data = cursor.fetchone()
+
+    if data is None:
+
+        cursor.close()
+        conn.close()
+
+        flash(
+            "Data karyawan tidak ditemukan.",
+            "error"
+        )
+
+        return redirect(url_for("index"))
+
+    # Hapus data
+    cursor.execute("""
         DELETE FROM karyawan
         WHERE id = %s
-        """,
-        (id,)
-    )
-
+    """, (id,))
 
     conn.commit()
 
     cursor.close()
     conn.close()
 
+    flash(
+        "Data karyawan berhasil dihapus.",
+        "success"
+    )
 
     return redirect(url_for("index"))
 
 
-# ==========================================
-# JALANKAN SERVER
-# ==========================================
+# =========================================================
+# RUN APPLICATION
+# =========================================================
 
 if __name__ == "__main__":
-
     app.run(
         debug=True,
         host="127.0.0.1",
