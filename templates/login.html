@@ -5,17 +5,13 @@
 
     <meta charset="UTF-8">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
 
-    <title>Login - Employee Management System</title>
+    <title>Login - Employee Management</title>
 
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='style.css') }}"
-    >
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
 
 </head>
 
@@ -29,37 +25,27 @@
 
             <h1>Employee Management</h1>
 
-            <p>
-                Silakan login untuk melanjutkan
-            </p>
+            <p>Silakan login untuk melanjutkan</p>
 
         </div>
 
-
-        <!-- FLASH MESSAGE -->
 
         {% with messages = get_flashed_messages(with_categories=true) %}
 
             {% if messages %}
 
-                <div class="flash-container">
+                {% for category, message in messages %}
 
-                    {% for category, message in messages %}
+                    <div class="flash {{ category }}">
+                        {{ message }}
+                    </div>
 
-                        <div class="flash {{ category }}">
-                            {{ message }}
-                        </div>
-
-                    {% endfor %}
-
-                </div>
+                {% endfor %}
 
             {% endif %}
 
         {% endwith %}
 
-
-        <!-- LOGIN FORM -->
 
         <form method="POST">
 
@@ -97,7 +83,7 @@
 
             <button
                 type="submit"
-                class="btn btn-primary login-button"
+                class="button primary login-button"
             >
                 Login
             </button>
@@ -107,13 +93,13 @@
 
         <div class="login-info">
 
-            <p>
-                Akun latihan:
-            </p>
+            <p>Akun latihan:</p>
 
-            <strong>
-                admin / admin123
-            </strong>
+            <strong>Admin:</strong> admin / admin123
+
+            <br>
+
+            <strong>User:</strong> user / user123
 
         </div>
 

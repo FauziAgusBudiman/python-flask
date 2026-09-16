@@ -5,10 +5,8 @@
 
     <meta charset="UTF-8">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
 
     <title>Edit Karyawan</title>
 
@@ -21,119 +19,173 @@
 
 <body>
 
-<div class="container form-container">
+<header>
 
-    <div class="form-card">
+    <div>
 
         <h1>Edit Karyawan</h1>
 
-        <p class="subtitle">
-            Perbarui informasi karyawan
-        </p>
-
-
-        <!-- FLASH MESSAGE -->
-
-        {% with messages = get_flashed_messages(with_categories=true) %}
-
-            {% if messages %}
-
-                <div class="flash-container">
-
-                    {% for category, message in messages %}
-
-                        <div class="flash {{ category }}">
-                            {{ message }}
-                        </div>
-
-                    {% endfor %}
-
-                </div>
-
-            {% endif %}
-
-        {% endwith %}
-
-
-        <form method="POST">
-
-            <div class="form-group">
-
-                <label>Nama Lengkap</label>
-
-                <input
-                    type="text"
-                    name="nama"
-                    value="{{ data['nama'] }}"
-                    required
-                >
-
-            </div>
-
-
-            <div class="form-group">
-
-                <label>Email</label>
-
-                <input
-                    type="email"
-                    name="email"
-                    value="{{ data['email'] }}"
-                    required
-                >
-
-            </div>
-
-
-            <div class="form-group">
-
-                <label>Jabatan</label>
-
-                <input
-                    type="text"
-                    name="jabatan"
-                    value="{{ data['jabatan'] }}"
-                    required
-                >
-
-            </div>
-
-
-            <div class="form-group">
-
-                <label>Departemen</label>
-
-                <input
-                    type="text"
-                    name="departemen"
-                    value="{{ data['departemen'] }}"
-                    required
-                >
-
-            </div>
-
-
-            <div class="form-actions">
-
-                <a
-                    href="{{ url_for('index') }}"
-                    class="btn btn-secondary"
-                >
-                    Kembali
-                </a>
-
-                <button
-                    type="submit"
-                    class="btn btn-primary"
-                >
-                    Update Data
-                </button>
-
-            </div>
-
-        </form>
+        <p>Memperbarui data karyawan</p>
 
     </div>
+
+    <a
+        href="{{ url_for('index') }}"
+        class="button secondary"
+    >
+        Kembali
+    </a>
+
+</header>
+
+
+<div class="container form-container">
+
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+
+        {% if messages %}
+
+            {% for category, message in messages %}
+
+                <div class="flash {{ category }}">
+                    {{ message }}
+                </div>
+
+            {% endfor %}
+
+        {% endif %}
+
+    {% endwith %}
+
+
+    <form
+        method="POST"
+        enctype="multipart/form-data"
+        class="employee-form"
+    >
+
+        <div class="form-group">
+
+            <label>
+                Nama
+            </label>
+
+            <input
+                type="text"
+                name="nama"
+                value="{{ data.nama }}"
+                required
+            >
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label>
+                Email
+            </label>
+
+            <input
+                type="email"
+                name="email"
+                value="{{ data.email }}"
+                required
+            >
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label>
+                Jabatan
+            </label>
+
+            <input
+                type="text"
+                name="jabatan"
+                value="{{ data.jabatan }}"
+                required
+            >
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label>
+                Departemen
+            </label>
+
+            <input
+                type="text"
+                name="departemen"
+                value="{{ data.departemen }}"
+                required
+            >
+
+        </div>
+
+
+        {% if data.foto %}
+
+        <div class="current-photo">
+
+            <p>
+                Foto saat ini:
+            </p>
+
+            <img
+                src="{{ url_for(
+                    'static',
+                    filename='uploads/' + data.foto
+                ) }}"
+                class="preview-photo"
+                alt="Foto {{ data.nama }}"
+            >
+
+        </div>
+
+        {% endif %}
+
+
+        <div class="form-group">
+
+            <label>
+                Ganti Foto
+            </label>
+
+            <input
+                type="file"
+                name="foto"
+                accept=".jpg,.jpeg,.png,.gif"
+            >
+
+            <small>
+                Kosongkan jika tidak ingin mengganti foto.
+            </small>
+
+        </div>
+
+
+        <button
+            type="submit"
+            class="button primary"
+        >
+            Simpan Perubahan
+        </button>
+
+
+        <a
+            href="{{ url_for('index') }}"
+            class="button secondary"
+        >
+            Batal
+        </a>
+
+    </form>
 
 </div>
 

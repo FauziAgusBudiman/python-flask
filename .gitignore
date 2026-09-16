@@ -1,0 +1,15 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+.env
+.vscode/
+*.db
+Thumbs.db
+.DS_Store
+
+static/uploads/*
+!static/uploads/.gitkeep
+
+static/export_karyawan.xlsx
+static/export_karyawan.pdf

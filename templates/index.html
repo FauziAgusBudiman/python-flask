@@ -5,233 +5,204 @@
 
     <meta charset="UTF-8">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
 
-    <title>Employee Management System</title>
+    <title>Employee Management</title>
 
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='style.css') }}"
-    >
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
 
 </head>
 
 <body>
 
-<div class="container">
 
-    <!-- ================= HEADER ================= -->
+<header>
 
-    <div class="header">
+    <div>
 
-        <div>
+        <h1>Employee Management</h1>
 
-            <h1>
-                Employee Management System
-            </h1>
-
-            <p>
-                Kelola data karyawan perusahaan
-            </p>
-
-        </div>
-
-
-        <div class="header-right">
-
-            <div class="user-info">
-
-                Login sebagai:
-                <strong>
-                    {{ username }}
-                </strong>
-
-            </div>
-
-            <a
-                href="{{ url_for('logout') }}"
-                class="btn btn-secondary"
-            >
-                Logout
-            </a>
-
-            <a
-                href="{{ url_for('tambah') }}"
-                class="btn btn-primary"
-            >
-                + Tambah Karyawan
-            </a>
-
-        </div>
+        <p>Dashboard Data Karyawan</p>
 
     </div>
 
 
-    <!-- ================= FLASH ================= -->
+    <div class="header-right">
+
+        <span class="user-info">
+
+            Login sebagai:
+
+            <strong>
+                {{ session["username"] }}
+            </strong>
+
+            ({{ session["role"] }})
+
+        </span>
+
+
+        <a
+            href="{{ url_for('logout') }}"
+            class="button danger"
+        >
+            Logout
+        </a>
+
+    </div>
+
+</header>
+
+
+<div class="container">
+
 
     {% with messages = get_flashed_messages(with_categories=true) %}
 
         {% if messages %}
 
-            <div class="flash-container">
+            {% for category, message in messages %}
 
-                {% for category, message in messages %}
+                <div class="flash {{ category }}">
+                    {{ message }}
+                </div>
 
-                    <div class="flash {{ category }}">
-                        {{ message }}
-                    </div>
-
-                {% endfor %}
-
-            </div>
+            {% endfor %}
 
         {% endif %}
 
     {% endwith %}
 
 
-    <!-- ================= DASHBOARD ================= -->
+    <!-- DASHBOARD -->
 
     <div class="dashboard">
 
-        <div class="dashboard-card">
+        <div class="card">
 
-            <div class="dashboard-title">
-                Total Karyawan
-            </div>
+            <h3>Total Karyawan</h3>
 
-            <div class="dashboard-number">
+            <p>
                 {{ total_karyawan }}
-            </div>
+            </p>
 
         </div>
 
 
-        {% for item in department_stats %}
+        {% for item in department_data %}
 
-            <div class="dashboard-card">
+        <div class="card">
 
-                <div class="dashboard-title">
-                    {{ item["departemen"] }}
-                </div>
+            <h3>
+                {{ item.departemen }}
+            </h3>
 
-                <div class="dashboard-number">
-                    {{ item["total"] }}
-                </div>
+            <p>
+                {{ item.jumlah }}
+            </p>
 
-            </div>
+        </div>
 
         {% endfor %}
 
     </div>
 
 
-    <!-- ================= FILTER ================= -->
+    <!-- ACTION -->
 
-    <div class="filter-card">
+    <div class="top-actions">
 
-        <form
-            method="GET"
-            action="{{ url_for('index') }}"
-            class="filter-form"
-        >
+        {% if session["role"] == "admin" %}
 
-            <div class="search-box">
-
-                <label>
-                    Cari Karyawan
-                </label>
-
-                <input
-                    type="text"
-                    name="search"
-                    value="{{ search }}"
-                    placeholder="Cari nama, email, atau jabatan..."
-                >
-
-            </div>
+            <a
+                href="{{ url_for('tambah') }}"
+                class="button primary"
+            >
+                + Tambah Karyawan
+            </a>
 
 
-            <div class="department-box">
-
-                <label>
-                    Departemen
-                </label>
-
-                <select name="departemen">
-
-                    <option value="">
-                        Semua Departemen
-                    </option>
-
-                    {% for item in departemen_list %}
-
-                        <option
-                            value="{{ item['departemen'] }}"
-                            {% if departemen == item['departemen'] %}
-                                selected
-                            {% endif %}
-                        >
-
-                            {{ item['departemen'] }}
-
-                        </option>
-
-                    {% endfor %}
-
-                </select>
-
-            </div>
+            <a
+                href="{{ url_for('export_excel') }}"
+                class="button success"
+            >
+                Export Excel
+            </a>
 
 
-            <div class="filter-buttons">
+            <a
+                href="{{ url_for('export_pdf') }}"
+                class="button secondary"
+            >
+                Export PDF
+            </a>
 
-                <button
-                    type="submit"
-                    class="btn btn-primary"
-                >
-                    Cari
-                </button>
-
-                <a
-                    href="{{ url_for('index') }}"
-                    class="btn btn-secondary"
-                >
-                    Reset
-                </a>
-
-            </div>
-
-        </form>
+        {% endif %}
 
     </div>
 
 
-    <!-- ================= TABLE ================= -->
+    <!-- SEARCH -->
 
-    <div class="card">
+    <form
+        method="GET"
+        action="{{ url_for('index') }}"
+        class="filter-form"
+    >
 
-        <div class="table-header">
+        <input
+            type="text"
+            name="search"
+            placeholder="Cari nama, email, jabatan..."
+            value="{{ search }}"
+        >
 
-            <div>
 
-                <h2>
-                    Data Karyawan
-                </h2>
+        <select name="departemen">
 
-                <p>
-                    Menampilkan
-                    {{ total_data }}
-                    data
-                </p>
+            <option value="">
+                Semua Departemen
+            </option>
 
-            </div>
+            {% for item in departemen_list %}
 
-        </div>
+                <option
+                    value="{{ item.departemen }}"
+                    {% if departemen == item.departemen %}
+                        selected
+                    {% endif %}
+                >
+                    {{ item.departemen }}
+                </option>
 
+            {% endfor %}
+
+        </select>
+
+
+        <button
+            type="submit"
+            class="button primary"
+        >
+            Cari
+        </button>
+
+
+        <a
+            href="{{ url_for('index') }}"
+            class="button secondary"
+        >
+            Reset
+        </a>
+
+    </form>
+
+
+    <!-- TABLE -->
+
+    <div class="table-wrapper">
 
         <table>
 
@@ -241,6 +212,8 @@
 
                     <th>No</th>
 
+                    <th>Foto</th>
+
                     <th>Nama</th>
 
                     <th>Email</th>
@@ -249,7 +222,11 @@
 
                     <th>Departemen</th>
 
-                    <th>Aksi</th>
+                    {% if session["role"] == "admin" %}
+
+                        <th>Aksi</th>
+
+                    {% endif %}
 
                 </tr>
 
@@ -258,153 +235,173 @@
 
             <tbody>
 
-                {% if karyawan %}
+                {% for row in data %}
 
-                    {% for data in karyawan %}
+                <tr>
 
-                        <tr>
+                    <td>
+                        {{ loop.index + ((page - 1) * 5) }}
+                    </td>
 
-                            <td>
-                                {{ (page - 1) * per_page + loop.index }}
-                            </td>
 
-                            <td>
-                                <strong>
-                                    {{ data["nama"] }}
-                                </strong>
-                            </td>
+                    <td>
 
-                            <td>
-                                {{ data["email"] }}
-                            </td>
+                        {% if row.foto %}
 
-                            <td>
-                                {{ data["jabatan"] }}
-                            </td>
+                            <img
+                                src="{{ url_for(
+                                    'static',
+                                    filename='uploads/' + row.foto
+                                ) }}"
+                                class="employee-photo"
+                                alt="Foto {{ row.nama }}"
+                            >
 
-                            <td>
+                        {% else %}
 
-                                <span class="badge">
-                                    {{ data["departemen"] }}
-                                </span>
+                            <div class="no-photo">
+                                -
+                            </div>
 
-                            </td>
+                        {% endif %}
 
-                            <td>
+                    </td>
 
-                                <div class="actions">
 
-                                    <a
-                                        href="{{ url_for('edit', id=data['id']) }}"
-                                        class="btn btn-edit"
-                                    >
-                                        Edit
-                                    </a>
+                    <td>
+                        {{ row.nama }}
+                    </td>
 
-                                    <a
-                                        href="{{ url_for('hapus', id=data['id']) }}"
-                                        class="btn btn-delete"
-                                        onclick="return confirm('Yakin ingin menghapus data ini?')"
-                                    >
-                                        Hapus
-                                    </a>
 
-                                </div>
+                    <td>
+                        {{ row.email }}
+                    </td>
 
-                            </td>
 
-                        </tr>
+                    <td>
+                        {{ row.jabatan }}
+                    </td>
 
-                    {% endfor %}
+
+                    <td>
+                        {{ row.departemen }}
+                    </td>
+
+
+                    {% if session["role"] == "admin" %}
+
+                    <td>
+
+                        <a
+                            href="{{ url_for(
+                                'edit',
+                                id=row.id
+                            ) }}"
+                            class="button warning small"
+                        >
+                            Edit
+                        </a>
+
+
+                        <a
+                            href="{{ url_for(
+                                'hapus',
+                                id=row.id
+                            ) }}"
+                            class="button danger small"
+                            onclick="return confirm(
+                                'Yakin ingin menghapus data ini?'
+                            )"
+                        >
+                            Hapus
+                        </a>
+
+                    </td>
+
+                    {% endif %}
+
+                </tr>
 
                 {% else %}
 
-                    <tr>
+                <tr>
 
-                        <td
-                            colspan="6"
-                            class="empty"
-                        >
-                            Data tidak ditemukan.
-                        </td>
+                    <td
+                        colspan="7"
+                        class="empty"
+                    >
+                        Data karyawan tidak ditemukan.
+                    </td>
 
-                    </tr>
+                </tr>
 
-                {% endif %}
+                {% endfor %}
 
             </tbody>
 
         </table>
 
-
-        <!-- ================= PAGINATION ================= -->
-
-        {% if total_pages > 1 %}
-
-            <div class="pagination">
-
-                {% if page > 1 %}
-
-                    <a
-                        href="{{ url_for(
-                            'index',
-                            page=page-1,
-                            search=search,
-                            departemen=departemen
-                        ) }}"
-                        class="page-btn"
-                    >
-                        ← Sebelumnya
-                    </a>
-
-                {% endif %}
+    </div>
 
 
-                <div class="page-numbers">
+    <!-- PAGINATION -->
 
-                    {% for page_number in range(1, total_pages + 1) %}
+    {% if total_pages > 1 %}
 
-                        <a
-                            href="{{ url_for(
-                                'index',
-                                page=page_number,
-                                search=search,
-                                departemen=departemen
-                            ) }}"
-                            class="page-btn
-                            {% if page_number == page %}
-                                active
-                            {% endif %}"
-                        >
-                            {{ page_number }}
-                        </a>
+    <div class="pagination">
 
-                    {% endfor %}
+        {% if page > 1 %}
 
-                </div>
+            <a
+                href="{{ url_for(
+                    'index',
+                    page=page-1,
+                    search=search,
+                    departemen=departemen
+                ) }}"
+            >
+                &laquo; Sebelumnya
+            </a>
+
+        {% endif %}
 
 
-                {% if page < total_pages %}
+        {% for p in range(1, total_pages + 1) %}
 
-                    <a
-                        href="{{ url_for(
-                            'index',
-                            page=page+1,
-                            search=search,
-                            departemen=departemen
-                        ) }}"
-                        class="page-btn"
-                    >
-                        Berikutnya →
-                    </a>
+            <a
+                href="{{ url_for(
+                    'index',
+                    page=p,
+                    search=search,
+                    departemen=departemen
+                ) }}"
+                class="{% if p == page %}active{% endif %}"
+            >
+                {{ p }}
+            </a>
 
-                {% endif %}
+        {% endfor %}
 
-            </div>
+
+        {% if page < total_pages %}
+
+            <a
+                href="{{ url_for(
+                    'index',
+                    page=page+1,
+                    search=search,
+                    departemen=departemen
+                ) }}"
+            >
+                Berikutnya &raquo;
+            </a>
 
         {% endif %}
 
     </div>
+
+    {% endif %}
+
 
 </div>
 
